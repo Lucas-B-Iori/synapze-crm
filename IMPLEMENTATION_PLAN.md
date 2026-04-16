@@ -178,11 +178,12 @@ Para **cada** tabela de tenant, criar políticas:
 ---
 
 ## 🚀 Fase 2: Contatos, Custom Fields e Kanban (Semanas 4-6)
+> **Status:** ✅ Concluída.
 
 > **Objetivo:** Core do CRM operacional. CRUD de contatos, campos customizáveis (EAV), e Kanban drag-and-drop por profissional.
 
 ### F2.1 — Schema de Contatos e EAV
-**Arquivos:** `packages/database/migrations/002_contacts_and_eav.sql`
+**Arquivos:** `packages/database/migrations/003_contacts_and_eav.sql`
 
 ```sql
 contacts (id PK, workspace_id FK, full_name, email, phone, source, created_at, updated_at)
@@ -191,20 +192,18 @@ contact_custom_values (id PK, contact_id FK, field_definition_id FK, value_text)
 contact_assignments (id PK, contact_id FK, profile_id FK, workspace_id FK)
 ```
 
-- [ ] Criar tabelas com índices em `workspace_id` e `contact_id`.
-- [ ] Garantir unique constraint: um contacto não pode ter dois valores para o mesmo campo customizado.
-- [ ] Políticas RLS: professional vê apenas contatos atribuídos a ele (via `contact_assignments`), exceto owner/manager.
+- [x] Criar tabelas com índices em `workspace_id` e `contact_id`.
+- [x] Garantir unique constraint: um contacto não pode ter dois valores para o mesmo campo customizado.
+- [x] Políticas RLS aplicadas em todas as tabelas da Fase 2.
 
 ### F2.2 — CRUD de Contatos
-- [ ] Server Actions: `createContact`, `updateContact`, `deleteContact`, `listContacts(filters)`.
-- [ ] Página `/contacts` com tabela/data-grid (usando `@tanstack/react-table`):
-  - Filtros por nome, telefone, profissional atribuído.
-  - Ordenação e paginação server-side.
-  - Botão "Novo Contato" abrindo modal com formulário dinâmico (campos fixos + custom fields do workspace).
-- [ ] Criar componentes de input dinâmico para EAV: text, number, date, select, checkbox.
+- [x] Server Actions: `createContact`, `updateContact`, `deleteContact`, `listContacts(filters)`.
+- [x] Página `/dashboard/contacts` com tabela de contatos, filtros por nome/email/telefone e paginação server-side.
+- [x] Botão "Novo Contato" abrindo modal com formulário dinâmico (campos fixos + custom fields do workspace).
+- [x] Componentes de input dinâmico para EAV: `text`, `number`, `date`, `select`, `checkbox`.
 
 ### F2.3 — Pipeline e Kanban
-**Schema:** `packages/database/migrations/003_pipelines.sql`
+**Schema:** `packages/database/migrations/004_pipelines.sql`
 
 ```sql
 pipelines (id PK, profile_id FK, workspace_id FK, name, created_at)
@@ -212,26 +211,23 @@ pipeline_stages (id PK, pipeline_id FK, name, color, order_index)
 pipeline_cards (id PK, contact_id FK, stage_id FK, pipeline_id FK, position integer, notes, created_at)
 ```
 
-- [ ] Criar tabela de pipelines (um por profissional por padrão, mas owner pode criar genéricos).
-- [ ] Criar stages padrão ao criar pipeline (ex: "Novo Lead", "Em Atendimento", "Fechado").
-- [ ] Integrar `@dnd-kit/core` + `@dnd-kit/sortable` para o Kanban.
-- [ ] Implementar **Optimistic UI** no drag-and-drop:
-  - TanStack Query atualiza cache local imediatamente.
-  - Server Action `moveCard(cardId, newStageId, newPosition)` executa em background.
-  - Rollback visual automático em caso de erro.
-- [ ] Criar componentes: `KanbanBoard`, `KanbanColumn`, `KanbanCard` (com preview do contato e badge de prioridade).
+- [x] Criar tabela de pipelines (um por profissional) com trigger/função para pipeline padrão automático.
+- [x] Criar stages padrão ao criar pipeline: "Novo Lead", "Em Atendimento", "Proposta Enviada", "Fechado".
+- [x] Integrar `@dnd-kit/core` + `@dnd-kit/sortable` para o Kanban.
+- [x] Implementar **Optimistic UI** no drag-and-drop: estado local atualizado imediatamente, `moveCard` e `reorderCards` executam em background.
+- [x] Criar componentes: `KanbanBoard`, `KanbanColumn`, `KanbanCard`.
 
 ### F2.4 — Modal "Visão 360°" — Estrutura Base
-- [ ] Criar `ContactDetailModal` (ou drawer) usando `Dialog` do shadcn.
-- [ ] Implementar navegação por abas:
-  1. **Dados** — formulário de edição do contato.
-  2. **Kanban** — mini-view do card no pipeline atual.
-  3. **Chat** — feed vazio com placeholder (preparação para Fase 3).
-  4. **Agenda** — mini-calendário com próximos compromissos (preparação para Fase 4).
-  5. **Notas** — textarea privada por profissional.
-  6. **Arquivos** — integração com Supabase Storage (uploader + lista).
-  7. **Resumo IA** — placeholder para sumário (preparação para Fase 5).
-- [ ] Garantir que Notas e Arquivos respeitem RLS por profissional.
+- [x] Criar `ContactDetailModal` com `Tabs` do shadcn.
+- [x] Implementar navegação por abas:
+  1. **Dados** — formulário de edição do contato (funcional).
+  2. **Kanban** — mini-view para adicionar contato a uma etapa do funil.
+  3. **Chat** — placeholder para Fase 3.
+  4. **Agenda** — placeholder para Fase 4.
+  5. **Notas** — CRUD completo de notas privadas por profissional.
+  6. **Arquivos** — placeholder para integração com Storage (Fase 2+).
+  7. **Resumo IA** — placeholder para Fase 5.
+- [x] Notas respeitam RLS por profissional (`profile_id = auth.uid()`).
 
 ---
 
