@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, Columns, Settings, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/contacts", label: "Contatos", icon: Users },
+  { href: "/dashboard/kanban", label: "Kanban", icon: Columns },
   { href: "/dashboard/settings", label: "Configurações", icon: Settings },
 ];
 
