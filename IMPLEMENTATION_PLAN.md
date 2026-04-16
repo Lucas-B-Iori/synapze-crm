@@ -102,18 +102,21 @@ synapze-crm/
 ### F0.2.1 — Setup PWA (Next.js)
 - [x] Instalar `next-pwa` e configurar em `next.config.ts`.
 - [x] Criar `public/manifest.json` com tema dark e display `standalone`.
+- [x] Criar ícones PWA `icon-192x192.png` e `icon-512x512.png`.
 - [x] `public/sw.js` gerado automaticamente pelo Workbox/next-pwa.
 - [x] Adicionar meta tags PWA no `layout.tsx`.
 - [ ] Testar instalação em iOS Safari e Android Chrome. *(Pendente — requer device/emulador físico)*
 
 ### F0.3 — Supabase Setup e Workflow de Migrations
-- [ ] Criar projeto Supabase (Production) e outro (Staging/Local). *(Pendente — requer login do usuário no Supabase)*
+- [x] Criar projeto Supabase Dev (`orbsgioyvqwqtpqonsbw`) e Prod (`jjzffffbhcvxwwiycadz`).
+- [x] Configurar `.env.local` com `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY`.
 - [x] Instalar e configurar `Supabase CLI` localmente (binário `bin/supabase.exe`).
 - [x] Inicializar pasta `supabase/` com `supabase init`.
 - [ ] Criar script `db:seed` e documentar fluxo de migration. *(Pendente — será feito junto com a primeira migration da Fase 1)*
 
 ### F0.4 — CI/CD e Deploy Inicial
-- [ ] Conectar repo à Vercel (Production + Preview por branch). *(Pendente — ação necessária do usuário)*
+- [x] Criar repositório no GitHub (`https://github.com/Lucas-B-Iori/synapze-crm`) e sincronizar código.
+- [ ] Conectar repo à Vercel (Production + Preview por branch). *(Ação do usuário em andamento)*
 - [x] Criar `.github/workflows/ci.yml`: `pnpm install` → `lint` → `type-check` → `vitest run`.
 - [x] Criar `.github/workflows/e2e-core.yml` (Playwright) rodando **apenas os Caminhos Críticos**.
 - [ ] Configurar variáveis de ambiente na Vercel. *(Pendente — depende da conexão com Vercel)*
