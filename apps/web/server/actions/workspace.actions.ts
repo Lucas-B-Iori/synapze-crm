@@ -81,5 +81,16 @@ async function setActiveWorkspace(workspaceId: string) {
 
 export async function getActiveWorkspaceId(): Promise<string | null> {
   const cookieStore = await cookies();
-  return cookieStore.get("active_workspace_id")?.value || null;
+  const fromCookie = cookieStore.get("active_workspace_id")?.value;
+  if (fromCookie) return fromCookie;
+
+  // Se não há cookie ativo, busca o primeiro workspace do usuário e seta o cookie
+  const result = await getWorkspacesForUser();
+  const firstWorkspace = result.data?.[0];
+  if (firstWorkspace) {
+    await setActiveWorkspace(firstWorkspace.id);
+    return firstWorkspace.id;
+  }
+
+  return null;
 }
