@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,20 +10,44 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
   const supabase = createClient();
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    await supabase.auth.signInWithPassword({ email, password });
+    setError(null);
+
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
     setLoading(false);
+
+    if (signInError) {
+      setError(signInError.message || "Email ou senha incorretos.");
+      return;
+    }
+
+    if (data?.session) {
+      router.push("/dashboard");
+    } else {
+      setError("Não foi possível iniciar a sessão. Tente novamente.");
+    }
   };
 
   const handleGoogleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
+    setError(null);
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${location.origin}/auth/callback` },
     });
+
+    if (oauthError) {
+      setError(oauthError.message || "Erro ao entrar com Google.");
+    }
   };
 
   return (
@@ -35,6 +60,12 @@ export function LoginForm() {
           </p>
         </div>
 
+        {error && (
+          <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleEmailLogin} className="space-y-4">
           <Input
             type="email"
@@ -42,6 +73,7 @@ export function LoginForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            autoComplete="email"
           />
           <Input
             type="password"
@@ -49,6 +81,7 @@ export function LoginForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            autoComplete="current-password"
           />
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Entrando..." : "Entrar com Email"}
@@ -64,7 +97,7 @@ export function LoginForm() {
           </div>
         </div>
 
-        <Button variant="outline" className="w-full" onClick={handleGoogleLogin}>
+        <Button variant="outline" className="w-full" onClick={handleGoogleLogin} disabled={loading}>
           Entrar com Google
         </Button>
       </div>

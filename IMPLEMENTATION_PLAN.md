@@ -131,6 +131,7 @@ synapze-crm/
 ---
 
 ## 🚀 Fase 1: Auth, Workspaces e Segurança (Semanas 2-3)
+> **Status:** ✅ Concluída.
 
 > **Objetivo:** Sistema multi-tenant funcional com RLS, roles, e onboarding white-glove.
 
