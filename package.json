@@ -1,0 +1,27 @@
+{
+  "name": "synapze-crm",
+  "version": "1.0.0",
+  "description": "Synapze CRM - Premium B2B CRM Solution",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "start": "pnpm --filter web start",
+    "lint": "pnpm --filter web lint",
+    "type-check": "pnpm --filter web type-check",
+    "test": "pnpm --filter web test",
+    "db:reset": "supabase db reset",
+    "db:push": "supabase db push"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "supabase": "^2.92.0"
+  }
+}
