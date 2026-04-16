@@ -77,7 +77,9 @@ export async function createWorkspace(name: string): Promise<ActionResult<Worksp
 
   const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") + "-" + Date.now();
 
-  const { data: workspace, error: workspaceError } = await supabase
+  const adminClient = createAdminClient();
+
+  const { data: workspace, error: workspaceError } = await adminClient
     .from("workspaces")
     .insert({ name, slug, owner_id: userData.user.id })
     .select()
@@ -87,7 +89,7 @@ export async function createWorkspace(name: string): Promise<ActionResult<Worksp
     return { error: workspaceError?.message || "Erro ao criar workspace" };
   }
 
-  const { error: memberError } = await supabase
+  const { error: memberError } = await adminClient
     .from("workspace_members")
     .insert({
       workspace_id: workspace.id,
