@@ -10,6 +10,9 @@ import {
   moveCard,
   updateCardPositions,
   deletePipelineCard,
+  updatePipelineStage,
+  deletePipelineStage,
+  reorderPipelineStages,
   ensureDefaultPipeline,
 } from "@/server/services/pipeline.service";
 
@@ -51,6 +54,27 @@ export async function movePipelineCard(cardId: string, newStageId: string, newPo
 
 export async function reorderCards(updates: { id: string; position: number; stage_id: string }[]) {
   return updateCardPositions(updates);
+}
+
+export async function editPipelineStage(
+  stageId: string,
+  payload: Parameters<typeof updatePipelineStage>[1]
+) {
+  const result = await updatePipelineStage(stageId, payload);
+  if (!result.error) revalidatePath("/dashboard/kanban");
+  return result;
+}
+
+export async function removePipelineStage(stageId: string) {
+  const result = await deletePipelineStage(stageId);
+  if (!result.error) revalidatePath("/dashboard/kanban");
+  return result;
+}
+
+export async function reorderStages(updates: { id: string; order_index: number }[]) {
+  const result = await reorderPipelineStages(updates);
+  if (!result.error) revalidatePath("/dashboard/kanban");
+  return result;
 }
 
 export async function removePipelineCard(cardId: string) {

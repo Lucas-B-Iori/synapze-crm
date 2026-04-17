@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { addContact } from "@/server/actions/contact.actions";
 import { CustomFieldInput } from "./custom-field-input";
+import { toast } from "sonner";
 import type { Contact, CustomFieldDefinition } from "@/types/contact";
 
 interface ContactFormProps {
@@ -21,12 +22,10 @@ export function ContactForm({ workspaceId, customFields, onSuccess }: ContactFor
   const [source, setSource] = useState("");
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setError(null);
 
     const result = await addContact(workspaceId, {
       full_name: fullName.trim(),
@@ -39,10 +38,10 @@ export function ContactForm({ workspaceId, customFields, onSuccess }: ContactFor
     setLoading(false);
 
     if (result.error) {
-      setError(result.error);
+      toast.error(result.error);
     } else if (result.data) {
+      toast.success("Contato criado com sucesso!");
       onSuccess(result.data);
-      // reset
       setFullName("");
       setEmail("");
       setPhone("");
@@ -52,71 +51,79 @@ export function ContactForm({ workspaceId, customFields, onSuccess }: ContactFor
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+    <form onSubmit={handleSubmit} className="space-y-4 pt-2">
       <div className="space-y-2">
-        <Label htmlFor="fullName">Nome completo *</Label>
+        <Label htmlFor="fullName" className="text-zinc-300">
+          Nome completo <span className="text-red-400">*</span>
+        </Label>
         <Input
           id="fullName"
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
           placeholder="João Silva"
           required
+          className="border-zinc-700 bg-zinc-950 text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-indigo-500/40"
         />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email" className="text-zinc-300">Email</Label>
           <Input
             id="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="joao@email.com"
+            className="border-zinc-700 bg-zinc-950 text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-indigo-500/40"
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="phone">Telefone</Label>
+          <Label htmlFor="phone" className="text-zinc-300">Telefone</Label>
           <Input
             id="phone"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="(11) 99999-9999"
+            className="border-zinc-700 bg-zinc-950 text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-indigo-500/40"
           />
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="source">Origem</Label>
+        <Label htmlFor="source" className="text-zinc-300">Origem</Label>
         <Input
           id="source"
           value={source}
           onChange={(e) => setSource(e.target.value)}
           placeholder="Indicação, Instagram, Site..."
+          className="border-zinc-700 bg-zinc-950 text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-indigo-500/40"
         />
       </div>
 
       {customFields.length > 0 && (
-        <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-4">
-          <p className="text-sm font-medium">Campos customizados</p>
-          {customFields.map((field) => (
-            <CustomFieldInput
-              key={field.id}
-              field={field}
-              value={customValues[field.id] || ""}
-              onChange={(value) =>
-                setCustomValues((prev) => ({ ...prev, [field.id]: value }))
-              }
-            />
-          ))}
+        <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-950/40 p-4">
+          <p className="text-sm font-medium text-zinc-300">Campos adicionais</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {customFields.map((field) => (
+              <CustomFieldInput
+                key={field.id}
+                field={field}
+                value={customValues[field.id] || ""}
+                onChange={(value) =>
+                  setCustomValues((prev) => ({ ...prev, [field.id]: value }))
+                }
+              />
+            ))}
+          </div>
         </div>
       )}
 
-      {error && (
-        <p className="text-sm text-destructive">{error}</p>
-      )}
-
-      <Button type="submit" className="w-full" disabled={loading}>
+      <Button
+        type="submit"
+        className="w-full bg-indigo-600 text-white hover:bg-indigo-500 btn-glow"
+        disabled={loading}
+      >
         {loading ? "Salvando..." : "Salvar contato"}
       </Button>
     </form>

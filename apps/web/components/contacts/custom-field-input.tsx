@@ -18,16 +18,20 @@ interface CustomFieldInputProps {
   onChange: (value: string) => void;
 }
 
+const inputClass =
+  "border-zinc-700 bg-zinc-950 text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-indigo-500/40";
+
 export function CustomFieldInput({ field, value, onChange }: CustomFieldInputProps) {
   if (field.field_type === "text" || field.field_type === "number") {
     return (
-      <div className="space-y-1">
-        <Label className="text-xs">{field.name}</Label>
+      <div className="space-y-1.5">
+        <Label className="text-xs text-zinc-400">{field.name}</Label>
         <Input
           type={field.field_type === "number" ? "number" : "text"}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={field.name}
+          className={inputClass}
         />
       </div>
     );
@@ -35,26 +39,22 @@ export function CustomFieldInput({ field, value, onChange }: CustomFieldInputPro
 
   if (field.field_type === "date") {
     return (
-      <div className="space-y-1">
-        <Label className="text-xs">{field.name}</Label>
-        <Input
-          type="date"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-        />
+      <div className="space-y-1.5">
+        <Label className="text-xs text-zinc-400">{field.name}</Label>
+        <Input type="date" value={value} onChange={(e) => onChange(e.target.value)} className={inputClass} />
       </div>
     );
   }
 
   if (field.field_type === "select") {
     return (
-      <div className="space-y-1">
-        <Label className="text-xs">{field.name}</Label>
+      <div className="space-y-1.5">
+        <Label className="text-xs text-zinc-400">{field.name}</Label>
         <Select value={value} onValueChange={onChange}>
-          <SelectTrigger>
+          <SelectTrigger className={inputClass}>
             <SelectValue placeholder={`Selecione ${field.name}`} />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="border-zinc-700 bg-zinc-900 text-zinc-100">
             {field.options.map((opt) => (
               <SelectItem key={opt} value={opt}>
                 {opt}
@@ -73,8 +73,9 @@ export function CustomFieldInput({ field, value, onChange }: CustomFieldInputPro
           id={field.id}
           checked={value === "true"}
           onCheckedChange={(checked) => onChange(checked ? "true" : "false")}
+          className="border-zinc-600 data-[state=checked]:bg-indigo-600 data-[state=checked]:text-white"
         />
-        <Label htmlFor={field.id} className="text-xs">
+        <Label htmlFor={field.id} className="text-xs text-zinc-400">
           {field.name}
         </Label>
       </div>

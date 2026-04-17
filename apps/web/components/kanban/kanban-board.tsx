@@ -1,28 +1,39 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import {
   DndContext,
   type DragEndEvent,
-  type DragOverEvent,
+  type DragStartEvent,
   PointerSensor,
   useSensor,
   useSensors,
   closestCorners,
+  DragOverlay,
 } from "@dnd-kit/core";
-import { arrayMove } from "@dnd-kit/sortable";
 import { KanbanColumn } from "./kanban-column";
-import { movePipelineCard, reorderCards } from "@/server/actions/pipeline.actions";
-import type { PipelineWithStages, PipelineCard, PipelineStage } from "@/types/pipeline";
+import { KanbanCard } from "./kanban-card";
+import { computeDragResult } from "./kanban-logic";
+import { movePipelineCard, reorderCards, removePipelineCard } from "@/server/actions/pipeline.actions";
+import type { PipelineWithStages, PipelineCard } from "@/types/pipeline";
+import type { Contact } from "@/types/contact";
 
 interface KanbanBoardProps {
   initialPipeline: PipelineWithStages;
   workspaceId: string;
   userId: string;
+  onAddContact: (stageId: string) => void;
+  onStagesChange?: (stages: PipelineWithStages["stages"]) => void;
 }
 
-export function KanbanBoard({ initialPipeline }: KanbanBoardProps) {
+export function KanbanBoard({ initialPipeline, onAddContact }: KanbanBoardProps) {
   const [pipeline, setPipeline] = useState<PipelineWithStages>(initialPipeline);
+  const [activeCard, setActiveCard] = useState<PipelineCard | null>(null);
+
+  // Keep pipeline in sync if prop changes (e.g. after stage settings update)
+  useEffect(() => {
+    setPipeline(initialPipeline);
+  }, [initialPipeline]);
 
   const cardsByStage = useMemo(() => {
     const map: Record<string, PipelineCard[]> = {};
@@ -42,94 +53,82 @@ export function KanbanBoard({ initialPipeline }: KanbanBoardProps) {
     })
   );
 
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const card = pipeline.cards.find((c) => c.id === event.active.id);
+    if (card) setActiveCard(card);
+  }, [pipeline.cards]);
+
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
+      setActiveCard(null);
       const { active, over } = event;
       if (!over) return;
 
       const activeId = active.id as string;
       const overId = over.id as string;
 
-      // Encontrar o card ativo
-      const activeCard = pipeline.cards.find((c) => c.id === activeId);
-      if (!activeCard) return;
+      const result = computeDragResult(pipeline, activeId, overId);
+      if (!result) return;
 
-      // Determinar se dropped em outro card ou em uma coluna
-      const overCard = pipeline.cards.find((c) => c.id === overId);
+      const previousPipeline = pipeline;
+      setPipeline(result.pipeline);
 
-      let targetStageId = activeCard.stage_id;
-      let newIndex = 0;
-
-      if (overCard) {
-        targetStageId = overCard.stage_id;
-        const stageCards = cardsByStage[targetStageId];
-        const overIndex = stageCards.findIndex((c) => c.id === overId);
-        const activeIndex = stageCards.findIndex((c) => c.id === activeId);
-
-        if (targetStageId === activeCard.stage_id) {
-          // Mesma coluna
-          if (activeIndex === overIndex) return;
-          newIndex = overIndex;
-        } else {
-          // Coluna diferente
-          newIndex = overIndex;
-        }
-      } else {
-        // Dropped em uma coluna vazia
-        targetStageId = overId;
-        newIndex = cardsByStage[targetStageId]?.length || 0;
-      }
-
-      // Atualizar estado local (Optimistic UI)
-      setPipeline((prev) => {
-        const updatedCards = prev.cards.map((c) => {
-          if (c.id === activeId) {
-            return { ...c, stage_id: targetStageId, position: newIndex };
-          }
-          return c;
-        });
-
-        // Reordenar cards na stage de destino
-        const stageCards = updatedCards
-          .filter((c) => c.stage_id === targetStageId)
-          .sort((a, b) => {
-            if (a.id === activeId) return newIndex;
-            if (b.id === activeId) return -newIndex;
-            return a.position - b.position;
-          });
-
-        // Atribuir novas posições sequenciais
-        stageCards.forEach((c, idx) => {
-          const card = updatedCards.find((x) => x.id === c.id);
-          if (card) card.position = idx;
-        });
-
-        return { ...prev, cards: updatedCards };
-      });
-
-      // Persistir no servidor
       try {
-        await movePipelineCard(activeId, targetStageId, newIndex);
-        // Opcional: sincronizar todas as posições da coluna
-        const stageCards = cardsByStage[targetStageId];
-        const updates = stageCards.map((c, idx) => ({
-          id: c.id,
-          stage_id: targetStageId,
-          position: idx,
-        }));
-        await reorderCards(updates);
+        await movePipelineCard(activeId, result.targetStageId, result.newIndex);
+        if (result.updates.length > 0) {
+          await reorderCards(result.updates);
+        }
       } catch (err) {
         console.error("Erro ao mover card:", err);
-        // Rollback não implementado por simplicidade; idealmente recarregaríamos o pipeline
+        setPipeline(previousPipeline);
       }
     },
-    [pipeline.cards, cardsByStage]
+    [pipeline]
   );
+
+  async function handleDeleteCard(cardId: string) {
+    const previousPipeline = pipeline;
+    setPipeline((prev) => ({
+      ...prev,
+      cards: prev.cards.filter((c) => c.id !== cardId),
+    }));
+    const result = await removePipelineCard(cardId);
+    if (result.error) {
+      setPipeline(previousPipeline);
+    }
+  }
+
+  // Optimistically add a card from quick-add
+  function handleQuickAddCard(contact: Contact, stageId: string) {
+    const optimisticCard: PipelineCard = {
+      id: `temp-${Date.now()}`,
+      pipeline_id: pipeline.id,
+      stage_id: stageId,
+      contact_id: contact.id,
+      position: 0,
+      notes: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      contact: {
+        id: contact.id,
+        full_name: contact.full_name,
+        email: contact.email || null,
+        phone: contact.phone || null,
+      },
+    };
+    setPipeline((prev) => {
+      const updated = prev.cards.map((c) =>
+        c.stage_id === stageId ? { ...c, position: c.position + 1 } : c
+      );
+      return { ...prev, cards: [optimisticCard, ...updated] };
+    });
+  }
 
   return (
     <DndContext
       sensors={sensors}
       collisionDetection={closestCorners}
+      onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
       <div className="flex h-full gap-4">
@@ -138,9 +137,18 @@ export function KanbanBoard({ initialPipeline }: KanbanBoardProps) {
             key={stage.id}
             stage={stage}
             cards={cardsByStage[stage.id] || []}
+            onAddContact={onAddContact}
+            onDeleteCard={handleDeleteCard}
           />
         ))}
       </div>
+      <DragOverlay dropAnimation={{ duration: 200, easing: "cubic-bezier(0.16, 1, 0.3, 1)" }}>
+        {activeCard ? (
+          <div className="rotate-2 scale-105 cursor-grabbing">
+            <KanbanCard card={activeCard} />
+          </div>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 }

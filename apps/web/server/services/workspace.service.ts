@@ -75,34 +75,19 @@ export async function createWorkspace(name: string): Promise<ActionResult<Worksp
     return { error: "Usuário não autenticado" };
   }
 
-  const slug = name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") + "-" + Date.now();
+  const { data: workspaceJson, error: rpcError } = await supabase.rpc(
+    "create_workspace_with_owner",
+    {
+      p_name: name,
+      p_owner_id: userData.user.id,
+    }
+  );
 
-  const adminClient = createAdminClient();
-
-  const { data: workspace, error: workspaceError } = await adminClient
-    .from("workspaces")
-    .insert({ name, slug, owner_id: userData.user.id })
-    .select()
-    .single();
-
-  if (workspaceError || !workspace) {
-    return { error: workspaceError?.message || "Erro ao criar workspace" };
+  if (rpcError || !workspaceJson) {
+    return { error: rpcError?.message || "Erro ao criar workspace" };
   }
 
-  const { error: memberError } = await adminClient
-    .from("workspace_members")
-    .insert({
-      workspace_id: workspace.id,
-      profile_id: userData.user.id,
-      role: "owner",
-      status: "active",
-    });
-
-  if (memberError) {
-    return { error: memberError.message };
-  }
-
-  return { data: workspace as Workspace };
+  return { data: workspaceJson as Workspace };
 }
 
 export async function inviteMember(
@@ -132,17 +117,15 @@ export async function inviteMember(
 
   const adminClient = createAdminClient();
 
-  // Buscar usuário existente pelo email na tabela auth.users
-  const { data: existingUsers } = await adminClient
-    .from("auth.users")
-    .select("id, email")
-    .eq("email", email)
-    .limit(1);
+  // Buscar usuário existente pelo email via RPC segura
+  const { data: existingUserId } = await supabase.rpc("get_auth_user_id_by_email", {
+    p_email: email,
+  });
 
   let profileId: string | null = null;
 
-  if (existingUsers && existingUsers.length > 0) {
-    profileId = (existingUsers[0] as any).id;
+  if (existingUserId) {
+    profileId = existingUserId;
   } else {
     // Criar usuário convidado via admin API
     const { data: newAuthData, error: createError } = await adminClient.auth.admin.createUser({
@@ -152,15 +135,13 @@ export async function inviteMember(
     });
 
     if (createError) {
-      // Se o erro for usuário já existente, tentamos buscar novamente
+      // Se o erro for usuário já existente, tentamos buscar novamente via RPC
       if (createError.message?.toLowerCase().includes("already registered") || createError.message?.toLowerCase().includes("already exists")) {
-        const { data: retryUsers } = await adminClient
-          .from("auth.users")
-          .select("id, email")
-          .eq("email", email)
-          .limit(1);
-        if (retryUsers && retryUsers.length > 0) {
-          profileId = (retryUsers[0] as any).id;
+        const { data: retryUserId } = await supabase.rpc("get_auth_user_id_by_email", {
+          p_email: email,
+        });
+        if (retryUserId) {
+          profileId = retryUserId;
         }
       }
       if (!profileId) {

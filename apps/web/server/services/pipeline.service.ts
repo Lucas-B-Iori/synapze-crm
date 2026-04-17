@@ -204,6 +204,47 @@ export async function updateCardPositions(
   return { data: null };
 }
 
+export async function updatePipelineStage(
+  stageId: string,
+  payload: { name?: string; color?: string; order_index?: number }
+): Promise<ActionResult<PipelineStage>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("pipeline_stages")
+    .update({ ...payload, updated_at: new Date().toISOString() })
+    .eq("id", stageId)
+    .select()
+    .single();
+
+  if (error || !data) {
+    return { error: error?.message || "Erro ao atualizar stage" };
+  }
+  return { data: data as PipelineStage };
+}
+
+export async function deletePipelineStage(stageId: string): Promise<ActionResult<null>> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("pipeline_stages").delete().eq("id", stageId);
+
+  if (error) {
+    return { error: error.message };
+  }
+  return { data: null };
+}
+
+export async function reorderPipelineStages(
+  updates: { id: string; order_index: number }[]
+): Promise<ActionResult<null>> {
+  const supabase = await createClient();
+  for (const update of updates) {
+    await supabase
+      .from("pipeline_stages")
+      .update({ order_index: update.order_index })
+      .eq("id", update.id);
+  }
+  return { data: null };
+}
+
 export async function deletePipelineCard(cardId: string): Promise<ActionResult<null>> {
   const supabase = await createClient();
   const { error } = await supabase.from("pipeline_cards").delete().eq("id", cardId);

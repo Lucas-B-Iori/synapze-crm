@@ -9,6 +9,13 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["var(--font-plus-jakarta)", "system-ui", "sans-serif"],
+      },
+      boxShadow: {
+        glow: "0 0 20px rgba(99, 102, 241, 0.15)",
+        "glow-lg": "0 0 30px rgba(99, 102, 241, 0.25)",
+      },
       colors: {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
