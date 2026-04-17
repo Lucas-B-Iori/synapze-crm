@@ -45,6 +45,8 @@ import {
   X,
   ArrowRight,
 } from "lucide-react";
+import { MessageThread } from "@/components/chat/message-thread";
+import { fetchChannelsForWorkspace } from "@/server/actions/channel.actions";
 
 interface ContactDetailModalProps {
   contactId: string;
@@ -71,6 +73,7 @@ export function ContactDetailModal({ contactId, onClose }: ContactDetailModalPro
   const [notes, setNotes] = useState<ContactNote[]>([]);
   const [newNote, setNewNote] = useState("");
   const [pipeline, setPipeline] = useState<PipelineWithStages | null>(null);
+  const [channels, setChannels] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("data");
 
   const loadContact = useCallback(async () => {
@@ -98,6 +101,15 @@ export function ContactDetailModal({ contactId, onClose }: ContactDetailModalPro
     }
     loadPipeline();
   }, [user, contact]);
+
+  useEffect(() => {
+    async function loadChannels() {
+      if (!contact?.workspace_id) return;
+      const result = await fetchChannelsForWorkspace(contact.workspace_id);
+      if (result.data) setChannels(result.data);
+    }
+    loadChannels();
+  }, [contact]);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -250,6 +262,7 @@ export function ContactDetailModal({ contactId, onClose }: ContactDetailModalPro
               {[
                 { id: "data", label: "Dados", icon: UserCircle },
                 { id: "kanban", label: "Funil", icon: Kanban },
+                { id: "chat", label: "Conversas", icon: MessageSquare },
                 { id: "notes", label: "Notas", icon: FileText },
               ].map((t) => (
                 <TabsTrigger
@@ -358,6 +371,20 @@ export function ContactDetailModal({ contactId, onClose }: ContactDetailModalPro
                 </div>
               ) : (
                 <p className="text-sm text-zinc-500">Carregando funil...</p>
+              )}
+            </TabsContent>
+
+            <TabsContent value="chat" className="mt-0 h-full">
+              {user && contact && (
+                <MessageThread
+                  workspaceId={contact.workspace_id}
+                  contactId={contact.id}
+                  contactName={contact.full_name}
+                  contactPhone={contact.phone}
+                  contactEmail={contact.email}
+                  channels={channels}
+                  userId={user.id}
+                />
               )}
             </TabsContent>
 
